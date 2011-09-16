@@ -6,19 +6,23 @@ import java.util.Map;
 import need.speedball.commands.SBcommand;
 import need.speedball.commands.SBgame;
 import need.speedball.commands.SBlist;
+import need.speedball.commands.SBpers;
 import need.speedball.commands.SBplay;
+import need.speedball.commands.SBremove;
 import need.speedball.commands.SBselect;
+import need.speedball.listener.EntityListener;
 import need.speedball.listener.PlayerListener;
 import need.speedball.objects.*;
 
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.event.Event.Type;
+
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import com.nijiko.permissions.PermissionHandler;
-import com.nijikokun.bukkit.Permissions.Permissions;
 
 public class SpeedBall extends JavaPlugin
 {
@@ -26,8 +30,14 @@ public class SpeedBall extends JavaPlugin
 	PluginManager pm;
 	
 	PlayerListener playerListener = new PlayerListener(this);
-	public GameUtils gu = new GameUtils(this);
-	public static PermissionHandler permissionHandler;
+	EntityListener entityListener = new EntityListener(this);
+	
+	public Map<Player,Location[]> playerCuboids = new HashMap<Player,Location[]>();
+	public Map<Player,Entity> playerEntities = new HashMap<Player,Entity>();
+	
+	public GameUtils gu = new GameUtils(this);	
+	public Persistence per = new Persistence(this);
+	public need.speedball.Permissions perms = new need.speedball.Permissions(this);
 	
 	public Map<String,Stadium>Stadiums = new HashMap<String,Stadium>();
 	public Map<String,Goal>Goals = new HashMap<String,Goal>();
@@ -37,11 +47,14 @@ public class SpeedBall extends JavaPlugin
 	
 	public SBcommand[] commands = new SBcommand[] 
 	{
-		new SBselect(), new SBgame(), new SBplay(), new SBlist()
+		new SBselect(), new SBgame(), new SBplay(), new SBlist(), new SBpers(), new SBremove()
 	};
 	
 	@Override
-	public void onDisable() {}
+	public void onDisable() 
+	{
+		per.save();
+	}
 
 	@Override
 	public void onEnable()
@@ -52,21 +65,17 @@ public class SpeedBall extends JavaPlugin
         
         registerEvents();
         registerCommands();
-        setupPermissions();
-	}
-	
-	private void setupPermissions()
-	{
-	      Plugin permissionsPlugin = this.getServer().getPluginManager().getPlugin("Permissions");
-
-	      if (permissionHandler == null) 
-	          if (permissionsPlugin != null) 
-	              permissionHandler = ((Permissions) permissionsPlugin).getHandler();
+        perms.setupPermissions();
+        
+        per.load();
 	}
 	
 	private void registerEvents()
 	{
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Event.Priority.Normal, this);
+		pm.registerEvent(Type.PLAYER_INTERACT_ENTITY, playerListener , Event.Priority.Normal, this);
+		pm.registerEvent(Event.Type.ENTITY_TARGET, entityListener, Event.Priority.Normal, this);
+		pm.registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Event.Priority.Highest, this);
 	}
 	
 	 private void registerCommands() 
@@ -77,18 +86,4 @@ public class SpeedBall extends JavaPlugin
 	         getCommand(cmd.getClass().getSimpleName().toLowerCase()).setExecutor(cmd);
 	     }
 	 }
-	 
-	public void repairBall(final Ball b)
-	{
-		getServer().getScheduler().scheduleSyncDelayedTask(this, new Runnable(){
-	
-			@Override
-			public void run()
-			{
-				b.getBlock().setTypeId(b.id);				
-			}
-					
-		}, 100);
-	}
-
 }

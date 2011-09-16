@@ -1,7 +1,6 @@
 package need.speedball;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,8 +34,6 @@ public class Game
 	public void start()
 	{
 		sb.RunningGames.put(name, this);
-		ball.getBlock().setTypeId(0);
-		ball.getBlock().getWorld().getBlockAt(ball.source).setTypeId(ball.id);
 	}
 	
 	public void stop()
@@ -79,6 +76,11 @@ public class Game
 		addPlayers(g,GameUtils.getList(p.getName()));
 	}
 	
+	public void addPlayer(Goal g,String p)
+	{
+		addPlayers(g,GameUtils.getList(p));
+	}
+	
 	public Ball getBall()
 	{
 		return ball;
@@ -102,6 +104,28 @@ public class Game
 	public void reachedPoint(Goal g)
 	{
 		points.put(g, points.get(g)+1);
+		sayAllPlayers("GOOOOAL! for: " + g.name);
+	}
+	
+	public void sayAllPlayers(String s)
+	{
+		for(List<Player> l:players.values())
+		{
+			for(Player p:l)
+			{
+				p.sendMessage(s);
+			}
+		}		
+	}
+	
+	public List<Player> getAllPlayers()
+	{
+		List<Player> player = new ArrayList<Player>();
+		for(List<Player> l:players.values())
+		{
+			player.addAll(l);
+		}
+		return player;
 	}
 	
 	public Map<String,Integer> getPoints()
@@ -117,7 +141,7 @@ public class Game
 		{
 			for(Player p:players.get(g))
 			{
-				p.getInventory().setChestplate(new ItemStack(GameUtils.chestPlates[Arrays.asList(players.keySet().toArray(new Goal[players.keySet().size()])).indexOf(g)]));
+				p.getInventory().setChestplate(new ItemStack(GameUtils.chestPlates[stadium.getGoals().indexOf(g)]));
 			}
 		}
 	}

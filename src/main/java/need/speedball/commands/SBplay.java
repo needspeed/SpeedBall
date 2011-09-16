@@ -1,7 +1,6 @@
 package need.speedball.commands;
 
 import need.speedball.Game;
-import need.speedball.SpeedBall;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -28,7 +27,7 @@ private enum PlayCommand {START, STOP}
             sender.sendMessage("Unknown play command: " + args[0]);
             return true;
         }
-        if(!SpeedBall.permissionHandler.has(player, "speedball.play."+playCommand))
+        if(!sb.perms.hasPerms(player, "play." +playCommand.name()))
         {
         	sender.sendMessage(ChatColor.RED + "No Permissions");
         	return false;
@@ -46,7 +45,7 @@ private enum PlayCommand {START, STOP}
 	{
 		Game game = sb.Games.get(ga);
 		game.addPlayer(sb.Goals.get(goa),p);
-		p.teleport(game.getBall().getBlock().getLocation());
+		p.teleport(game.getBall().getLocation());
 	}
 	
 	private void stop(Player p)

@@ -1,27 +1,31 @@
 package need.speedball.commands;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 import need.speedball.GameUtils;
-import need.speedball.SpeedBall;
 import need.speedball.objects.Ball;
+import need.speedball.objects.BlockBall;
+import need.speedball.objects.EntityBall;
 import need.speedball.objects.Goal;
 import need.speedball.objects.Stadium;
+import net.minecraft.server.EntityFallingSand;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.block.Block;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 public class SBselect extends SBcommand
 { 
-	private enum SelCommand {BLOCK1, BLOCK2, STADIUM, BALL, DISPLAY, GOAL, CLEAR}
-	private Map<Player,Location[]> playerCuboids = new HashMap<Player,Location[]>();
-	
+	private enum SelCommand {STADIUM, BALL, DISPLAY, GOAL, CLEAR}
+		
 	@Override
 	public boolean onCommand(CommandSender sender, Command command,String label, String[] args)
 	{
@@ -37,18 +41,16 @@ public class SBselect extends SBcommand
             sender.sendMessage("Unknown selection command: " + args[0]);
             return true;
         }
-        if(!SpeedBall.permissionHandler.has(player, "speedball.select."+selCommand))
+        if(!sb.perms.hasPerms(player, "selection." + selCommand.name()))
         {
         	sender.sendMessage(ChatColor.RED + "No Permissions");
         	return false;
         }
         switch (selCommand) 
         {
-        	case BLOCK1:  block1(player);			break;
-        	case BLOCK2:  block2(player);	   		break;
         	case CLEAR:	  clearSelection(player);   break;
         	case STADIUM: stadium(player,args[1],Arrays.copyOfRange(args, 2, args.length));	break;
-        	case BALL:	  ball(player,args[1]);  	break;
+        	case BALL:	  ball(player,args[1],args[2]);  	break;
         	case DISPLAY: 							break;
         	case GOAL:	  goal(player,args[1]);		break;
         }
@@ -56,60 +58,71 @@ public class SBselect extends SBcommand
 		return true;
 	}
 	
-	private void block1(Player p)
-	{
-		Location target = p.getTargetBlock(null, 1000).getLocation();
-		
-		if(playerCuboids.containsKey(p)&&playerCuboids.get(p)[1]!=null)
-		{
-			playerCuboids.put(p, new Location[]{target,playerCuboids.get(p)[1]});
-		}
-		else playerCuboids.put(p, new Location[]{target,null});		
-		
-		p.sendMessage("Block 1 is now at: " + GameUtils.toString(target));
-	}
-
-	private void block2(Player p)
-	{
-		Location target = p.getTargetBlock(null, 1000).getLocation();
-		
-		if(playerCuboids.containsKey(p)&&playerCuboids.get(p)[0]!=null)
-		{
-			playerCuboids.put(p, new Location[]{playerCuboids.get(p)[0],target});
-		}
-		else playerCuboids.put(p, new Location[]{null,target});		
-		
-		p.sendMessage("Block 2 is now at: " + GameUtils.toString(target));
-	}
-
 	private void clearSelection(Player p)
 	{
-		playerCuboids.remove(p);
-		
+		sb.playerCuboids.remove(p);
+		 
 		p.sendMessage("Selection cleared");
 	}
 	
 	private void stadium(Player p,String name, String[] goa)
 	{
-		Goal[] goas = new Goal[goa.length];
-		for(int i=0;i<goa.length;i++) goas[i] = sb.Goals.get(goa[i]);
+		List<Goal> goals = new ArrayList<Goal>();
+		for(String s:goa) goals.add(sb.Goals.get(s));
 		
-		sb.Stadiums.put(name, new Stadium(sb, playerCuboids.get(p)[0], playerCuboids.get(p)[1], name, goas ));
+		sb.Stadiums.put(name, new Stadium(sb.playerCuboids.get(p)[0], sb.playerCuboids.get(p)[1], name, goals ));
 		
+		for(Goal g:goals)g.setStadium(sb.Stadiums.get(name));
 		p.sendMessage("Stadium selected");
 	}
 	
-	private void ball(Player p,String name)
+	private void ball(Player p,String type,String name)
 	{
-		Block target = p.getTargetBlock(null, 1000);
-		sb.Balls.put(name, new Ball(sb,target,name));
+		if(type.equals("block"))
+		{
+			Location target = sb.playerCuboids.get(p)[0];
+			sb.Balls.put(name, new BlockBall(sb,p.getWorld().getBlockAt(target),name));
+			p.sendMessage("Ball selected at: " + GameUtils.toString(target));
+		}
 		
-		p.sendMessage("Ball selected at: " + GameUtils.toString(target.getLocation()));
+		if(type.equals("entity"))
+		{
+			
+			Ball ball = new EntityBall(sb, sb.playerEntities.get(p), name);
+			sb.Balls.put(name, ball);
+			p.sendMessage("Selected Ball is a: " + sb.playerEntities.get(p).getClass().getInterfaces()[0].getSimpleName());
+		}
+		
+		if(type.equals("physics"))
+		{
+			Location pLoc = p.getLocation();
+			net.minecraft.server.World world = ((CraftWorld)p.getWorld()).getHandle();
+			net.minecraft.server.Entity sand = new EntityFallingSand(world, pLoc.getBlockX(),pLoc.getBlockY()+1,pLoc.getBlockZ(), 12)
+			{
+				@Override
+				public void s_()
+				{
+					this.move(motX, motY, motZ);
+				}
+			};
+			world.addEntity(sand);
+			Ball ball = new EntityBall(sb,sand.getBukkitEntity(),name);
+			sb.Balls.put(name, ball);
+			p.sendMessage("Selected Ball is a: " + sand.getBukkitEntity().getClass().getInterfaces()[0].getSimpleName());
+		}
+		
+		if(type.equals("item"))
+		{
+			Entity e = p.getWorld().dropItemNaturally(p.getLocation(), new ItemStack(Material.SLIME_BALL,1));	
+			Ball ball = new EntityBall(sb,e,name);
+			sb.Balls.put(name, ball);
+			p.sendMessage("Selected Ball is a: " + "Slimeball");
+		}
 	}
 	
 	private void goal(Player p,String name)
 	{
-		sb.Goals.put(name, new Goal(name,playerCuboids.get(p)[0], playerCuboids.get(p)[1]));
+		sb.Goals.put(name, new Goal(name,sb.playerCuboids.get(p)[0], sb.playerCuboids.get(p)[1]));
 		
 		p.sendMessage("Goal selected");
 	}

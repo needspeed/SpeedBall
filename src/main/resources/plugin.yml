@@ -1,6 +1,6 @@
 name: SpeedBall
 main: need.speedball.SpeedBall
-version: 0.1.1
+version: 0.4.1
 commands:
    sbgame:
     description:
@@ -15,6 +15,14 @@ commands:
     usage:
      /<command> <subcmd>
    sblist:
+    description:
+    usage:
+     /<command> <subcmd>
+   sbpers:
+    description:
+    usage:
+     /<command> <subcmd>
+   sbremove:
     description:
     usage:
      /<command> <subcmd>

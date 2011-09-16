@@ -1,90 +1,59 @@
 package need.speedball.objects;
 
-import need.speedball.Region;
+import java.util.Map;
+
 import need.speedball.SpeedBall;
 
 import org.bukkit.Location;
-import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
 
-public class Ball
+public abstract class Ball
 {
-	SpeedBall sb;
-	Block ballBlock;
-	public String name;
-	public Location source;
-	public int id;
-	public byte data;
+	protected SpeedBall sb;
+	private String name;
+	private Location source;
 	
-	public Ball(SpeedBall ins,Block b,String name)
+	public Ball(SpeedBall ins,String name,Location source)
 	{
 		this.sb = ins;
-		this.ballBlock = b;
 		this.name = name;
-		this.source = ballBlock.getLocation();
-		this.id = ballBlock.getTypeId();
-		this.data = ballBlock.getData();
+		this.source = source;
 	}
 	
-	public Block getBlock()
+	public String getName()
 	{
-		return ballBlock;
+		return name;
 	}
 	
-	public void kick(Vector v)
+	public Location getSource()
 	{
-		Location newBlock = ballBlock.getLocation().toVector().add(v).toLocation(ballBlock.getWorld());
-				
-		if(isInGoal(newBlock)==null)
-		{
-			if(ballBlock.getWorld().getBlockAt(newBlock).getTypeId()!=0)reset();
-			ballBlock.getWorld().getBlockAt(newBlock).setTypeId(id);
-			ballBlock.getWorld().getBlockAt(newBlock).setData(data);
-			ballBlock.setTypeId(0);
-			ballBlock = ballBlock.getWorld().getBlockAt(newBlock);
-		}
-		else
-		{
-			reset();
-			sb.gu.getGame(this).reachedPoint(isInGoal(newBlock));
-		}
-		if(!isInStadium(newBlock))reset();
+		return source;
 	}
 	
-	public void reset()
-	{
-		ballBlock.setTypeId(0);
-		ballBlock = ballBlock.getWorld().getBlockAt(source);
-		ballBlock.setTypeId(id);
-		ballBlock.setData(data);
-		sb.getServer().getScheduler().scheduleSyncDelayedTask(sb, new Runnable(){
-
-			@Override
-			public void run()
-			{
-				ballBlock.setTypeId(id);	
-				ballBlock.setData(data);
-			}
-			
-		}, 100);
-	}
+	public abstract Location getLocation();
 	
-	private boolean isInStadium(Location l)
-	{		
-		Stadium st = sb.gu.getGame(this).getStadium();
-		Region region = new Region(sb,st.corner1,st.corner2);
+	public abstract boolean isObject(Object o);
+	
+	public abstract void kick(Vector v);
 		
-		return region.isInRegion(l);
+	public abstract void setBallObjectLocation(Location l);
+	
+	public abstract void reset();
+	
+	public abstract Map<String,Object> getSpecials();
+	
+	public boolean isInStadium(Location l)
+	{						
+		return sb.gu.getGame(this).getStadium().containsBlock(l);
 	}
 	
-	private Goal isInGoal(Location l)
+	public Goal isInGoal(Location l)
 	{
 		Stadium st = sb.gu.getGame(this).getStadium();
 		
 		for(Goal g:st.getGoals())
 		{
-			Region rg = new Region(sb,g.corner1,g.corner2);
-			if(rg.isInRegion(l)) return g;
+			if(g.containsBlock(l)) return g;
 		}		
 		return null;
 	}

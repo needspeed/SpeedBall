@@ -1,7 +1,6 @@
 package need.speedball.commands;
 
 import need.speedball.GameUtils;
-import need.speedball.SpeedBall;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -10,7 +9,7 @@ import org.bukkit.entity.Player;
 
 public class SBlist extends SBcommand
 {
-	private enum ListCommand {BALLS, STADIUMS, GAMES, GOALS, DEVS, VERSION}
+	private enum ListCommand {BALLS, STADIUMS, GAMES,PLAYERS, GOALS, DEVS, VERSION}
 		
 		@Override
 		public boolean onCommand(CommandSender sender, Command command,String label, String[] args)
@@ -27,7 +26,7 @@ public class SBlist extends SBcommand
 	            sender.sendMessage("Unknown list command: " + args[0]);
 	            return true;
 	        }
-	        if(!SpeedBall.permissionHandler.has(player, "speedball.list."+listCommand))
+	        if(!sb.perms.hasPerms(player, "list." + listCommand.name()))
 	        {
 	        	sender.sendMessage(ChatColor.RED + "No Permissions");
 	        	return false;
@@ -37,6 +36,7 @@ public class SBlist extends SBcommand
 	        	case BALLS:  	listBalls(player);			break;
 	        	case STADIUMS:  listStadiums(player); 		break;
 	        	case GAMES:  	listGames(player);			break;
+	        	case PLAYERS:   listPlayers(player,args[1]);	break;
 	        	case GOALS:   	listGoals(player);			break;
 	        	case DEVS: 		listDevs(player);			break;
 	        	case VERSION:   showVersion(player);		break;
@@ -44,7 +44,7 @@ public class SBlist extends SBcommand
 	        
 			return true;
 		}
-		
+
 		public void showVersion(Player p)
 		{
 			p.sendMessage("Version: " + sb.pdfFile.getVersion());
@@ -54,7 +54,7 @@ public class SBlist extends SBcommand
 		{
 			for(String b:sb.Balls.keySet())
 			{
-				p.sendMessage(b +  ": " + GameUtils.toString(sb.Balls.get(b).getBlock().getLocation()));
+				p.sendMessage(b +  ": " + GameUtils.toString(sb.Balls.get(b).getLocation()));
 			}
 		}
 		
@@ -66,6 +66,11 @@ public class SBlist extends SBcommand
 		public void listGames(Player p)
 		{
 			p.sendMessage(sb.Games.keySet().toString());
+		}
+		
+		public void listPlayers(Player p,String ga)
+		{
+			p.sendMessage(sb.Games.get(ga).getAllPlayers().toString());
 		}
 		
 		public void listGoals(Player p)
