@@ -1,59 +1,51 @@
 package need.speedball.commands;
 
-import org.bukkit.ChatColor;
+import need.speedball.PlayerCom;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class SBremove extends SBcommand
 {
-	private enum RemoveCommand {STADIUM, BALL, DISPLAY, GOAL}
+	private enum ECommand {STADIUM, BALL, SCOREBOARD, GOAL}
 		
 		@Override
 		public boolean onCommand(CommandSender sender, Command command,String label, String[] args)
 		{
-			RemoveCommand removeCommand;
+			ECommand eCommand;
 			Player player = (Player)sender;
+			if(args.length<2)
+			{
+				PlayerCom.error(player, "Specify a subcommand and an object");
+				return true;
+			}
+			else if(args.length>2) PlayerCom.warn(player, "You added an argument too much!");
 			
 	        try 
 	        {
-	        	removeCommand = RemoveCommand.valueOf(args[0].toUpperCase());
+	        	eCommand = ECommand.valueOf(args[0].toUpperCase());
 	        } 
 	        catch (IllegalArgumentException ie) 
 	        {
 	            sender.sendMessage("Unknown play command: " + args[0]);
 	            return true;
 	        }
-	        if(!sb.perms.hasPerms(player, "remove." +removeCommand.name()))
+	        if(!checkPerms(sender,this.getClass().getSimpleName(),eCommand.name()))return true;
+	        
+	        boolean flag=false;
+	        
+	        switch (eCommand) 
 	        {
-	        	sender.sendMessage(ChatColor.RED + "No Permissions");
-	        	return false;
+	        	case STADIUM: flag=sb.removeScoreboard(args[1]);		break;
+	        	case BALL:	  flag=sb.removeStadium(args[1]);  			break;
+	        	case SCOREBOARD: flag=sb.removeBall(args[1]);			break;
+	        	case GOAL:	  flag=sb.removeGoal(args[1]);				break;
 	        }
-	        switch (removeCommand) 
-	        {
-	        	case STADIUM: deleteStadium(args[1]);	break;
-	        	case BALL:	  deleteBall(args[1]);  	break;
-	        	case DISPLAY: 							break;
-	        	case GOAL:	  deleteGoal(args[1]);		break;
-	        }
+	        
+	        if(flag) PlayerCom.info(player, eCommand.name() + " " + args[1] + " successfully deleted");
+	        else PlayerCom.error(player, eCommand.name() + " " + args[1] + " is not existent or could not be deleted!");
 	        
 			return true;
 		}
-		
-		void deleteStadium(String s)
-		{
-			sb.Stadiums.remove(s);
-		}
-		
-		void deleteBall(String s)
-		{
-			sb.Balls.remove(s);
-		}
-		
-		void deleteGoal(String s)
-		{
-			sb.Goals.get(s).getStadium().removeGoal(sb.Goals.get(s));
-			sb.Goals.remove(s);			
-		}
-
 }

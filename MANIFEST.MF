@@ -1,6 +1,5 @@
 Manifest-Version: 1.0
 Archiver-Version: Plexus Archiver
-Class-Path: WorldGuard.jar
 Created-By: Apache Maven
 Built-By: Needspeed
 Build-Jdk: 1.6.0_24

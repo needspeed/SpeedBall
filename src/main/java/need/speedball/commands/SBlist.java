@@ -1,42 +1,43 @@
 package need.speedball.commands;
 
-import need.speedball.GameUtils;
+import need.speedball.Game;
+import need.speedball.PlayerCom;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class SBlist extends SBcommand
 {
-	private enum ListCommand {BALLS, STADIUMS, GAMES,PLAYERS, GOALS, DEVS, VERSION}
+	private enum ECommand {BALLS, STADIUMS, GAMES,PLAYERS, GOALS, DEVS, VERSION}
 		
 		@Override
 		public boolean onCommand(CommandSender sender, Command command,String label, String[] args)
 		{
-			ListCommand listCommand;
+			ECommand eCommand;
 			Player player = (Player)sender;
+			if(args.length<1)
+			{
+				PlayerCom.error(player, "Specify a subcommand");
+				return true;
+			}			
 			
 	        try 
 	        {
-	        	listCommand = ListCommand.valueOf(args[0].toUpperCase());
+	        	eCommand = ECommand.valueOf(args[0].toUpperCase());
 	        } 
 	        catch (IllegalArgumentException ie) 
 	        {
 	            sender.sendMessage("Unknown list command: " + args[0]);
 	            return true;
 	        }
-	        if(!sb.perms.hasPerms(player, "list." + listCommand.name()))
-	        {
-	        	sender.sendMessage(ChatColor.RED + "No Permissions");
-	        	return false;
-	        }
-	        switch (listCommand) 
+	        if(!checkPerms(sender,this.getClass().getSimpleName(),eCommand.name()))return true;
+	        switch (eCommand) 
 	        {
 	        	case BALLS:  	listBalls(player);			break;
 	        	case STADIUMS:  listStadiums(player); 		break;
 	        	case GAMES:  	listGames(player);			break;
-	        	case PLAYERS:   listPlayers(player,args[1]);	break;
+	        	case PLAYERS:   listPlayers(player,args);	break;
 	        	case GOALS:   	listGoals(player);			break;
 	        	case DEVS: 		listDevs(player);			break;
 	        	case VERSION:   showVersion(player);		break;
@@ -52,30 +53,36 @@ public class SBlist extends SBcommand
 		
 		public void listBalls(Player p)
 		{
-			for(String b:sb.Balls.keySet())
+			for(String b:sb.getBalls().keySet())
 			{
-				p.sendMessage(b +  ": " + GameUtils.toString(sb.Balls.get(b).getLocation()));
+				p.sendMessage(b +  ": " + PlayerCom.toString(sb.getBall(b).getLocation()));
 			}
 		}
 		
 		public void listStadiums(Player p)
 		{
-			p.sendMessage(sb.Stadiums.keySet().toString());
+			p.sendMessage(sb.getStadiums().keySet().toString());
 		}
 		
 		public void listGames(Player p)
 		{
-			p.sendMessage(sb.Games.keySet().toString());
+			p.sendMessage(sb.getGames().keySet().toString());
 		}
 		
-		public void listPlayers(Player p,String ga)
+		public void listPlayers(Player p,String[] args)
 		{
-			p.sendMessage(sb.Games.get(ga).getAllPlayers().toString());
+			if(args.length<2)
+			{
+				PlayerCom.error(p, "Missing Arguments");
+				return;
+			}
+			String ga = args[1];
+			p.sendMessage(((Game)sb.getGames().get(ga)).getAllPlayers().toString());
 		}
 		
 		public void listGoals(Player p)
 		{
-			p.sendMessage(sb.Goals.keySet().toString());
+			p.sendMessage(sb.getGoals().keySet().toString());
 		}
 		
 		public void listDevs(Player p)

@@ -3,7 +3,10 @@ package need.speedball.listener;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
@@ -11,9 +14,10 @@ import org.bukkit.util.Vector;
 
 import need.speedball.Game;
 import need.speedball.SpeedBall;
-import need.speedball.objects.EntityBall;
+import need.speedball.objects.Ball;
+import need.speedball.objects.ItemBall;
 
-public class PlayerListener extends org.bukkit.event.player.PlayerListener
+public class PlayerListener implements Listener
 {
 	SpeedBall sb;
 	
@@ -22,108 +26,95 @@ public class PlayerListener extends org.bukkit.event.player.PlayerListener
 		this.sb = sb;
 	}
 	
-	@Override
+	
+	@EventHandler
+	public void onFoodLevelChange(FoodLevelChangeEvent event)
+	{
+		Player p;
+		if(event.getEntity() instanceof Player) p = (Player)event.getEntity();
+		else return;
+		if(sb.getSBplayer(p.getName())!=null)event.setCancelled(true);
+	}
+	
+	@EventHandler
 	public void onPlayerInteract(PlayerInteractEvent event)
 	{
 		Player p = event.getPlayer();
 		Block b = event.getClickedBlock();
 		if(event.getAction()==Action.RIGHT_CLICK_BLOCK)
 		{
-			if(sb.gu.isBall(b))
-			{				
-				Game ga = sb.gu.getGame(p);
-					
-				if(ga!=null)
+			Game game = sb.getSBplayer(p.getName()).getGame();
+			if(game!=null)
+			{
+				if(game.getBall().isObject(b))
 				{
-					if(ga.getBall().isObject(b))
-					{
-						Vector toadd = new Vector();
-						Vector blockv = event.getClickedBlock().getLocation().toVector();
-						Vector playerv = new Vector();
-						playerv.setX(p.getLocation().toVector().getBlockX());
-						playerv.setY(p.getLocation().toVector().getBlockY());
-						playerv.setZ(p.getLocation().toVector().getBlockZ());
-						
-						double xtemp = blockv.getX()-playerv.getX();
-						double ztemp = blockv.getZ()-playerv.getZ();
-						
-						toadd.setX(Math.signum(xtemp)*5-xtemp);
-						toadd.setY(0);
-						toadd.setZ(Math.signum(ztemp)*5-ztemp);
-										
-						ga.getBall().kick(toadd);
-					}
+					Vector toadd = new Vector();
+					Vector blockv = event.getClickedBlock().getLocation().toVector();
+					Vector playerv = new Vector();
+					playerv.setX(p.getLocation().toVector().getBlockX());
+					playerv.setY(p.getLocation().toVector().getBlockY());
+					playerv.setZ(p.getLocation().toVector().getBlockZ());
+					
+					double xtemp = blockv.getX()-playerv.getX();
+					double ztemp = blockv.getZ()-playerv.getZ();
+					
+					toadd.setX(Math.signum(xtemp)*5-xtemp);
+					toadd.setY(0);
+					toadd.setZ(Math.signum(ztemp)*5-ztemp);
+									
+					game.getBall().kick(toadd);
 				}
 			}
-			else
+			if(event.getItem()!=null && event.getItem().getTypeId()==341)
 			{
-				if(event.getItem()!=null)
-				{
-					if(event.getItem().getTypeId()==341)
-					{
-						sb.gu.addToPlayerCuboids(p, b.getLocation(), 0);
-					}
-				}
+				sb.addToPlayerCuboids(p, b.getLocation(), 0);
 			}
 		}
 		else if(event.getAction()==Action.LEFT_CLICK_BLOCK)
 		{
-			if(event.getItem()!=null)
+			if(event.getItem()!=null && event.getItem().getTypeId()==341)
 			{
-				if(event.getItem().getTypeId()==341)
-				{
-					sb.gu.addToPlayerCuboids(p, b.getLocation(), 1);
-				}
+				sb.addToPlayerCuboids(p, b.getLocation(), 1);
 			}
 		}
 	}
 	
-	@Override
+	@EventHandler
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event)
 	{
 		Entity e = event.getRightClicked();	
-		Player p = event.getPlayer();
+		Player p = event.getPlayer();		
+	
+		Game game = sb.getSBplayer(p.getName()).getGame();
 		
-		if(sb.gu.isBall(e))
-		{			
-			Game ga = sb.gu.getGame(p);
-			
-			if(ga!=null)
+		if(game!=null)
+		{
+			if(game.getBall().isObject(e))
 			{
-				if(ga.getBall().isObject(e))
-				{
-					EntityBall b = (EntityBall)ga.getBall();
-					b.kick(sb.gu.getVelocity(p, e, 2));
-				}
+				ItemBall b = (ItemBall)game.getBall();
+				b.kick(Ball.getVelocity(p, e, 2));
 			}
 		}
-		else if (event.getPlayer().getItemInHand().getTypeId()==341)
+		
+		if (p.getItemInHand().getTypeId()==341)
 		{
-			sb.playerEntities.put(p, e);
+			sb.putPlayerEntity(p.getName(), e);
 		}
 	}
 	
-	@Override
+	@EventHandler
 	public void onPlayerPickupItem(PlayerPickupItemEvent event)
 	{
 		Entity e = event.getItem();	
 		Player p = event.getPlayer();
+		Ball b;
 		
-		if(sb.gu.isBall(e))
+		if((b = sb.getBall(sb.getBallHash(e)))!=null)
 		{			
-			Game ga = sb.gu.getGame(p);
+			Game ga = b.getGame();
 			event.setCancelled(true);
 			
-			if(ga!=null)
-			{
-				if(ga.getBall().isObject(e))
-				{
-					EntityBall b = (EntityBall)ga.getBall();
-					b.kick(sb.gu.getVelocity(p, e, 2));					
-				}
-				else p.sendMessage("Ball Entity");
-			}
-			else p.sendMessage("Ball Entity");
+			if(ga!=null) b.kick(Ball.getVelocity(p, e, 2));
 		}
 	}
 }

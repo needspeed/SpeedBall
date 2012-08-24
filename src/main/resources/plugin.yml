@@ -1,6 +1,6 @@
 name: SpeedBall
 main: need.speedball.SpeedBall
-version: 0.4.1
+version: 0.4.7
 commands:
    sbgame:
     description:
